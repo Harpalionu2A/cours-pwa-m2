@@ -1,0 +1,5 @@
+body { font-family: sans-serif; max-width: 32rem; margin: 2rem auto; padding: 0 1rem; }
+#offline { background: #fde68a; padding: 0.5rem; }
+#offline[hidden] { display: none; }
+li { margin: 0.5rem 0; }
+li button { margin-left: 0.5rem; }

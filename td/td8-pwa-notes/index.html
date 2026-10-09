@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes</title>
+  <meta name="description" content="Carnet de notes hors ligne — coquille des TD du Jour 2">
+  <meta name="theme-color" content="#1a73e8">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <!-- idb : IndexedDB avec des Promises (chapitre 2), sans bundler -->
+  <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Notes</h1>
+    <p id="network" class="badge">en ligne</p>
+  </header>
+
+  <main>
+    <!-- Saisie et liste : fournies. Le stockage (app.js) est à écrire. -->
+    <form id="form" autocomplete="off">
+      <label for="text" class="sr-only">Nouvelle note</label>
+      <input id="text" placeholder="Nouvelle note…" required>
+      <button type="submit">Ajouter</button>
+    </form>
+    <p id="count" aria-live="polite"></p>
+    <ul id="list"></ul>
+  </main>
+
+  <!-- Journal : tout ce que la page et le Service Worker racontent (aussi dans la console) -->
+  <section id="journal-box" aria-label="Journal">
+    <div class="journal-head">
+      <strong>Journal</strong>
+      <span>
+        <button type="button" id="btn-update" title="registration.update()">Vérifier une mise à jour</button>
+        <button type="button" id="btn-clear" title="Vider le journal">Vider</button>
+      </span>
+    </div>
+    <ol id="journal"></ol>
+  </section>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
