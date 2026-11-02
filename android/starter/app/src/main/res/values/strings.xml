@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Carnet</string>
+    <string name="ready">Carnet — prêt (v0.1, API 37)</string>
+</resources>
