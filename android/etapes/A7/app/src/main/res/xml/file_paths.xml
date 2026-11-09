@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TD A7 : ce que le FileProvider accepte d'exposer — le sous-dossier photos/ de filesDir, rien d'autre. -->
+<paths>
+    <files-path name="photos" path="photos/" />
+</paths>
