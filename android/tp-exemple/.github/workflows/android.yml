@@ -1,0 +1,90 @@
+# Carnet — intégration continue (Jour 6, chapitre 1)
+# Copié tel quel dans android/tp-exemple/.github/workflows/android.yml.
+#
+# À chaque push sur main et à chaque pull request : tests unitaires, puis APK release signé.
+# Secrets du dépôt (Settings → Secrets and variables → Actions) :
+#   RELEASE_KEYSTORE_B64   le keystore encodé en base64 :  base64 -w0 release.jks
+#   RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
+#   PWA_HOST               l'hôte de sa PWA (App Link), ex. ma-pwa.netlify.app
+#   FIREBASE_SERVICE_CREDENTIALS_B64 (optionnel) compte de service pour App Distribution
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"          # 21 fonctionne aussi (JBR d'Android Studio)
+
+      # Cache Gradle (~/.gradle, dépendances et wrapper) : la deuxième exécution ne télécharge rien
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Le keystore n'est jamais dans le dépôt : il est reconstruit depuis le secret, dans le runner.
+      # Les secrets passent par env: (jamais en interpolation ${{ }} dans le script).
+      - name: Keystore et secrets → local.properties
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          PWA_HOST: ${{ secrets.PWA_HOST }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_B64" ]; then
+            echo "$RELEASE_KEYSTORE_B64" | base64 -d > release.jks
+            {
+              echo "RELEASE_STORE_FILE=release.jks"
+              echo "RELEASE_STORE_PASSWORD=$RELEASE_STORE_PASSWORD"
+              echo "RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS"
+              echo "RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
+            } >> local.properties
+          else
+            # sans secrets : release signée debug, l'APK s'installe (repli de build.gradle.kts)
+            echo "Pas de RELEASE_KEYSTORE_B64 : release signée avec la clé debug"
+          fi
+          # PWA_HOST vide écrase la valeur par défaut du build : repli explicite
+          echo "PWA_HOST=${PWA_HOST:-tp-cours-pwa.netlify.app}" >> local.properties
+          # false seulement si google-services.json est factice
+          echo "CRASHLYTICS_UPLOAD_MAPPING=true" >> local.properties
+
+      - name: Tests unitaires + APK release
+        run: ./gradlew test assembleRelease --no-daemon --console=plain
+
+      - name: Vérifier la signature
+        run: $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+
+      # L'APK et le mapping.txt (pour lire les traces obscurcies) sont téléchargeables depuis l'onglet Actions
+      - name: Artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: carnet-release
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/mapping/release/mapping.txt
+
+      - name: Rapport de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-unitaires
+          path: app/build/reports/tests/
+
+      # Optionnel : Firebase App Distribution (bonus du TP) — décommenter et renseigner le secret
+      # - name: Firebase App Distribution
+      #   env:
+      #     FIREBASE_SERVICE_CREDENTIALS_B64: ${{ secrets.FIREBASE_SERVICE_CREDENTIALS_B64 }}
+      #   run: |
+      #     echo "$FIREBASE_SERVICE_CREDENTIALS_B64" | base64 -d > firebase-sa.json
+      #     FIREBASE_SERVICE_CREDENTIALS=$PWD/firebase-sa.json ./gradlew appDistributionUploadRelease --no-daemon
